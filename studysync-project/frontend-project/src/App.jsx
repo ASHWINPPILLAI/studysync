@@ -154,7 +154,7 @@ const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   
   // Base URL for the Node.js backend - MUST match your server.js port!
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_BASE_URL = 'https://studysync-1-a5la.onrender.com/api';
 
   useEffect(() => {
     // Attempt to validate token and fetch user data on load
