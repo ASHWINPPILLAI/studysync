@@ -34,16 +34,29 @@ router.post('/', [auth, teacherAuth], async (req, res) => {
     const { title, description, fileUrl, subject, classId } = req.body;
 
     // Validation: Title, Subject, and Class are required. FileUrl is optional.
-    if (!title || !subject || !classId) {
-      return res.status(4DE).json({ msg: 'Title, Subject, and Class are required.' });
+    if (!title || !subject) {
+      // --- THIS IS THE FIX ---
+      // Changed 4DE to 400
+      return res.status(400).json({ msg: 'Title and Subject are required.' });
     }
     
+    // If no classId is provided (because you removed the dropdown),
+    // we must assign it to the teacher's first class.
+    let assignedClassId = classId;
+    if (!assignedClassId) {
+        const teacher = await User.findById(req.user.id);
+        if (!teacher || teacher.classIds.length === 0) {
+            return res.status(400).json({ msg: 'You are not assigned to any classes. Admin must assign you a class first.' });
+        }
+        assignedClassId = teacher.classIds[0]; // Assign to the first class
+    }
+
     const newMaterial = new Material({
       title,
       description,
       fileUrl,
       subject,
-      classId,
+      classId: assignedClassId,
       teacherId: req.user.id
     });
     
@@ -69,3 +82,21 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 module.exports = router;
+```
+
+### **How to Fix Your Deployment**
+
+1.  **Save** the corrected code in your local `studysync-backend/routes/material.routes.js` file.
+2.  Go to your **main project terminal** (`C:\Users\ashwi\WEBDEV PROJECT`).
+3.  Run these three commands to push the fix:
+
+    ```bash
+    git add .
+    ```
+    ```bash
+    git commit -m "Fix: Corrected syntax error in material.routes.js"
+    ```
+    ```bash
+    git push
+    
+
