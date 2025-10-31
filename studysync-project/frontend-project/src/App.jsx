@@ -274,7 +274,6 @@ const AuthProvider = ({ children }) => {
   const fetchSubjects = () => apiRequest('subjects', 'GET');
 
   const fetchUsers = () => apiRequest('users', 'GET');
-  const fetchMarks = () => apiRequest('marks', 'GET');
   const fetchMaterials = () => apiRequest('materials', 'GET');
 
   // --- API CRUD FUNCTIONS ---
@@ -293,11 +292,6 @@ const AuthProvider = ({ children }) => {
       classId: userData.classId,
       classIds: userData.classIds
   });
-
-  const addMark = (data) => apiRequest('marks', 'POST', data);
-  const deleteMark = (id) => apiRequest(`marks/${id}`, 'DELETE');
-  // --- ADDED FOR MARK EDIT ---
-  const updateMark = (id, data) => apiRequest(`marks/${id}`, 'PUT', data);
 
   const addMaterial = (data) => apiRequest('materials', 'POST', data);
   const deleteMaterial = (id) => apiRequest(`materials/${id}`, 'DELETE');
@@ -320,10 +314,6 @@ const AuthProvider = ({ children }) => {
     fetchUsers,
     deleteUser,
     updateUser,
-    fetchMarks,
-    addMark,
-    deleteMark,
-    updateMark, // --- ADDED FOR MARK EDIT ---
     fetchMaterials,
     addMaterial,
     deleteMaterial
@@ -1914,3 +1904,4 @@ const HomePage = ({ navigateTo }) => {
     );
 
     export default App;
+
