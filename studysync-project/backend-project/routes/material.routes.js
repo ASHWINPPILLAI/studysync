@@ -82,21 +82,6 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 module.exports = router;
-```
 
-### **How to Fix Your Deployment**
-
-1.  **Save** the corrected code in your local `studysync-backend/routes/material.routes.js` file.
-2.  Go to your **main project terminal** (`C:\Users\ashwi\WEBDEV PROJECT`).
-3.  Run these three commands to push the fix:
-
-    ```bash
-    git add .
-    ```
-    ```bash
-    git commit -m "Fix: Corrected syntax error in material.routes.js"
-    ```
-    ```bash
-    git push
     
 
