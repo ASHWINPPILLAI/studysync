@@ -10,18 +10,14 @@ const Class = require('./models/class.model');
 const app = express();
 
 // --- Middleware ---
-
-// --- THIS IS THE CRITICAL CONNECTION (Backend to Frontend) ---
-// We must allow your live Vercel app to talk to this server.
 const whitelist = [
   'http://localhost:5173', // For your local development
-  'https://studysync-gilt.vercel.app' // <-- YOUR VERCEL URL IS NOW ALLOWED
+  'https://studysync-gilt.vercel.app' // Your Vercel URL
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
     if (whitelist.indexOf(origin) !== -1 || !origin) {
-      // Allow if in whitelist or if it's not a browser (like Postman)
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -117,7 +113,7 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/users', require('./routes/user.routes'));
 app.use('/api/classes', require('./routes/class.routes'));
 app.use('/api/subjects', require('./routes/subject.routes'));
-app.use('/api/marks', require('./routes/mark.routes'));
+// app.use('/api/marks', require('./routes/mark.routes')); // <-- REMOVED
 app.use('/api/materials', require('./routes/material.routes'));
 
 // --- Start Server ---

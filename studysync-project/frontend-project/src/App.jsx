@@ -153,7 +153,8 @@ const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Base URL for the Node.js backend - MUST match your server.js port!
+  // --- THIS IS THE CRITICAL LINE ---
+  // It points to your LIVE Render backend.
   const API_BASE_URL = 'https://studysync-1-a5la.onrender.com/api';
 
   useEffect(() => {
@@ -216,8 +217,7 @@ const AuthProvider = ({ children }) => {
       setToken(result.token);
       setCurrentUser(result.user);
       
-      // --- FIX 1: Always navigate to 'home' on login ---
-      if (navigate) navigate('home'); // <-- ALWAYS go to 'home'
+      if (navigate) navigate('home'); // Always go to 'home'
       
       return true;
     } catch (err) {
@@ -241,7 +241,7 @@ const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(result.user));
       setToken(result.token);
       setCurrentUser(result.user);
-      if (navigate) navigate('home'); // <-- Go to 'home' after signup too
+      if (navigate) navigate('home'); // Go to 'home' after signup
       return true;
     } catch (err) {
       throw err;
@@ -274,6 +274,7 @@ const AuthProvider = ({ children }) => {
   const fetchSubjects = () => apiRequest('subjects', 'GET');
 
   const fetchUsers = () => apiRequest('users', 'GET');
+  // REMOVED: fetchMarks
   const fetchMaterials = () => apiRequest('materials', 'GET');
 
   // --- API CRUD FUNCTIONS ---
@@ -284,7 +285,6 @@ const AuthProvider = ({ children }) => {
   const deleteSubject = (id) => apiRequest(`subjects/${id}`, 'DELETE');
 
   const deleteUser = (id) => apiRequest(`users/${id}`, 'DELETE');
-  // Pass only necessary fields to backend update
   const updateUser = (id, userData) => apiRequest(`users/${id}`, 'PUT', {
       name: userData.name,
       email: userData.email,
@@ -292,6 +292,8 @@ const AuthProvider = ({ children }) => {
       classId: userData.classId,
       classIds: userData.classIds
   });
+
+  // REMOVED: addMark, deleteMark, updateMark
 
   const addMaterial = (data) => apiRequest('materials', 'POST', data);
   const deleteMaterial = (id) => apiRequest(`materials/${id}`, 'DELETE');
@@ -314,6 +316,7 @@ const AuthProvider = ({ children }) => {
     fetchUsers,
     deleteUser,
     updateUser,
+    // REMOVED: Mark functions
     fetchMaterials,
     addMaterial,
     deleteMaterial
@@ -1027,23 +1030,20 @@ const AdminManagementTab = ({ navigateTo }) => {
         };
 
         const AdminOperationsTab = () => {
-            const { fetchMarks, deleteMark, fetchMaterials, deleteMaterial, fetchUsers, isLoading, error } = useAuth();
-            const [marks, setMarks] = useState([]);
+            const { fetchMaterials, deleteMaterial, fetchUsers, isLoading, error } = useAuth();
             const [materials, setMaterials] = useState([]);
             const [users, setUsers] = useState([]);
             const [opError, setOpError] = useState(null);
             const [opSuccess, setOpSuccess] = useState(null);
-            const [activeSubTab, setActiveSubTab] = useState('marks'); // 'marks', 'materials'
 
             const fetchData = async () => {
                 try {
                     setOpError(null);
-                    const [marksData, materialsData, usersData] = await Promise.all([
-                        fetchMarks(),
+                    // --- REMOVED fetchMarks() ---
+                    const [materialsData, usersData] = await Promise.all([
                         fetchMaterials(),
                         fetchUsers()
                     ]);
-                    setMarks(marksData);
                     setMaterials(materialsData);
                     setUsers(usersData);
                 } catch (err) {
@@ -1053,15 +1053,14 @@ const AdminManagementTab = ({ navigateTo }) => {
 
             useEffect(() => {
                 fetchData();
-            }, [activeSubTab]);
+            }, []);
 
             const handleDelete = async (type, id) => {
                 if (window.confirm(`Are you sure you want to delete this ${type.slice(0, -1)}?`)) {
                     try {
                         setOpError(null);
-                        if (type === 'marks') {
-                            await deleteMark(id);
-                        } else {
+                        // --- REMOVED marks logic ---
+                        if (type === 'materials') {
                             await deleteMaterial(id);
                         }
                         setOpSuccess(`${type.slice(0, -1)} deleted successfully.`);
@@ -1073,36 +1072,6 @@ const AdminManagementTab = ({ navigateTo }) => {
             };
 
             const getUserName = (id) => users.find(u => (u._id) === id)?.name || 'Unknown';
-
-            const renderMarks = () => (
-                <div className="mt-4 overflow-x-auto shadow-md rounded-lg border">
-                    <h4 className="text-xl font-semibold mb-3 p-4 bg-gray-50">All Uploaded Marks</h4>
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                {['Student', 'Class', 'Subject', 'Marks', 'Teacher', 'Date', 'Action'].map(header => (
-                                    <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{header}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {marks.map(mark => (
-                                <tr key={mark._id} className="hover:bg-gray-50 transition duration-150">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{mark.studentName}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{mark.classId}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{mark.subject}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{mark.marks}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getUserName(mark.teacherId)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(mark.createdAt).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button onClick={() => handleDelete('marks', mark._id)} className="text-red-600 hover:text-red-900">Delete</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            );
 
             const renderMaterials = () => (
                 <div className="mt-4 overflow-x-auto shadow-md rounded-lg border">
@@ -1141,30 +1110,7 @@ const AdminManagementTab = ({ navigateTo }) => {
                     <h3 className="text-2xl font-bold mb-4 text-gray-800">Consolidated Operations</h3>
                     <MessageBox message={opError} type="error" onClose={() => setOpError(null)} />
                     <MessageBox message={opSuccess} type="success" onClose={() => setOpSuccess(null)} />
-
-                    {/* Sub Tabs */}
-                    <div className="flex border-b border-gray-200 mb-4">
-                        {['marks', 'materials'].map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveSubTab(tab)}
-                                className={`px-4 py-2 text-sm font-medium capitalize border-b-2 transition duration-150 ${
-                                    activeSubTab === tab
-                                        ? 'border-indigo-600 text-indigo-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                }`}
-                            >
-                                {tab === 'marks' ? 'Student Marks' : 'Study Materials'}
-                            </button>
-                        ))}
-                    </div>
-
-                    {isLoading ? <LoadingSpinner /> : (
-                        <>
-                            {activeSubTab === 'marks' && renderMarks()}
-                            {activeSubTab === 'materials' && renderMaterials()}
-                        </>
-                    )}
+                    {isLoading ? <LoadingSpinner /> : renderMaterials()}
                 </div>
             );
         };
@@ -1174,7 +1120,7 @@ const AdminManagementTab = ({ navigateTo }) => {
 
         const TeacherDashboard = ({ navigateTo }) => {
           const { currentUser, fetchClasses } = useAuth();
-          const [activeTab, setActiveTab] = useState('home'); // 'home', 'marks', 'materials'
+          const [activeTab, setActiveTab] = useState('home'); // 'home', 'materials'
           const [classes, setClasses] = useState([]);
 
           const loadClasses = async () => {
@@ -1195,8 +1141,8 @@ const AdminManagementTab = ({ navigateTo }) => {
           return (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 min-h-screen">
               <div className="flex border-b border-gray-300 mb-6">
-                {/* --- FIX: RE-ADD 'marks' TAB --- */}
-                {['home', 'marks', 'materials'].map(tab => (
+                {/* --- FIX: REMOVED 'marks' TAB --- */}
+                {['home', 'materials'].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -1206,235 +1152,17 @@ const AdminManagementTab = ({ navigateTo }) => {
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    {tab === 'home' ? 'Home' : tab === 'marks' ? 'Marks Management' : 'Material Upload'}
+                    {tab === 'home' ? 'Home' : 'Material Upload'}
                   </button>
                 ))}
               </div>
               
               <div className="mt-6">
                 {activeTab === 'home' && <HomePage navigateTo={navigateTo} />}
-                {/* --- FIX: RE-ADD 'marks' RENDER --- */}
-                {activeTab === 'marks' && <TeacherMarksTab />}
                 {activeTab === 'materials' && <TeacherMaterialsTab />}
               </div>
             </div>
           );
-        };
-
-        // --- FIX: RE-ADD TeacherMarksTab component ---
-        const TeacherMarksTab = () => {
-            const { currentUser, isLoading, fetchUsers, fetchMarks, addMark, deleteMark, updateMark, fetchSubjects, fetchClasses } = useAuth();
-            const [marks, setMarks] = useState([]);
-            const [users, setUsers] = useState([]);
-            const [subjects, setSubjects] = useState([]);
-            const [classes, setClasses] = useState([]);
-            const [markForm, setMarkForm] = useState({ studentId: '', subject: '', marks: '', classId: '' });
-            const [message, setMessage] = useState(null);
-            
-            // --- EDIT STATE ---
-            const [editingMarkId, setEditingMarkId] = useState(null);
-            const [editMarkValue, setEditMarkValue] = useState('');
-
-            const assignedClassIds = currentUser.classIds || [];
-            const studentsInAssignedClasses = users.filter(u => u.role === 'user' && assignedClassIds.includes(u.classId));
-
-            const fetchData = async () => {
-                try {
-                    const [usersData, marksData, subjectsData, classesData] = await Promise.all([
-                        fetchUsers(), 
-                        fetchMarks(), 
-                        fetchSubjects(),
-                        fetchClasses()
-                    ]);
-                    setUsers(usersData);
-                    setMarks(marksData); // These are *only* the teacher's marks
-                    setSubjects(subjectsData);
-                    setClasses(classesData);
-                } catch (err) {
-                    setMessage({ type: 'error', text: err.message });
-                }
-            };
-
-            useEffect(() => {
-                fetchData();
-            }, [currentUser]);
-
-            const handleStudentChange = (e) => {
-                const studentId = e.target.value;
-                const student = users.find(u => u._id === studentId);
-                setMarkForm({ 
-                    ...markForm, 
-                    studentId: studentId, 
-                    classId: student ? student.classId : '' // Automatically set classId
-                });
-            };
-
-            const handleAddMark = async (e) => {
-                e.preventDefault();
-                setMessage(null);
-                if (!markForm.studentId || !markForm.subject || !markForm.marks || !markForm.classId) {
-                    setMessage({ type: 'error', text: 'All fields are required.' });
-                    return;
-                }
-
-                try {
-                    await addMark(markForm);
-                    setMessage({ type: 'success', text: 'Marks uploaded successfully.' });
-                    setMarkForm({ studentId: '', subject: '', marks: '', classId: '' });
-                    fetchData();
-                } catch (err) {
-                    setMessage({ type: 'error', text: err.message });
-                }
-            };
-
-            const handleDeleteMark = async (id) => {
-                if (window.confirm('Are you sure you want to delete this mark entry?')) {
-                    try {
-                        await deleteMark(id);
-                        setMessage({ type: 'success', text: 'Mark deleted successfully.' });
-                        fetchData();
-                    } catch (err) {
-                        setMessage({ type: 'error', text: err.message });
-                    }
-                }
-            };
-            
-            // --- EDIT HANDLERS ---
-            const handleEditClick = (mark) => {
-              setEditingMarkId(mark._id);
-              setEditMarkValue(mark.marks);
-              setMessage(null);
-            };
-            
-            const handleCancelClick = () => {
-              setEditingMarkId(null);
-              setEditMarkValue('');
-            };
-            
-            const handleSaveMark = async (markId) => {
-              setMessage(null);
-              try {
-                await updateMark(markId, { marks: editMarkValue });
-                setMessage({ type: 'success', text: 'Mark updated successfully!' });
-                setEditingMarkId(null);
-                fetchData(); // Refresh data
-              } catch (err) {
-                setMessage({ type: 'error', text: err.message });
-              }
-            };
-
-            const getClassName = (id) => classes.find(c => c._id === id)?.name || id;
-
-            return (
-                <div className="p-6 bg-white rounded-xl shadow-lg grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-1 bg-gray-50 p-4 rounded-lg border h-full">
-                        <h4 className="text-xl font-semibold mb-4 text-gray-800">Upload New Marks</h4>
-                        {message && <MessageBox message={message.text} type={message.type} onClose={() => setMessage(null)} />}
-                        {isLoading ? <LoadingSpinner /> : (
-                            <form onSubmit={handleAddMark} className="space-y-4">
-                                <label className="block text-sm font-medium text-gray-700">Select Student</label>
-                                <select
-                                    value={markForm.studentId}
-                                    onChange={handleStudentChange}
-                                    className="w-full p-3 border rounded-lg shadow-sm"
-                                    required
-                                    disabled={isLoading}
-                                >
-                                    <option value="">-- Select Student --</option>
-                                    {studentsInAssignedClasses.map(s => (
-                                        <option key={s._id} value={s._id}>{s.name} ({getClassName(s.classId)})</option>
-                                    ))}
-                                </select>
-                                
-                                <label className="block text-sm font-medium text-gray-700">Select Subject</label>
-                                <select
-                                    value={markForm.subject}
-                                    onChange={(e) => setMarkForm({ ...markForm, subject: e.target.value })}
-                                    className="w-full p-3 border rounded-lg shadow-sm"
-                                    required
-                                >
-                                    <option value="">-- Select Subject --</option>
-                                    {subjects.map(s => (
-                                        <option key={s._id} value={s.name}>{s.name}</option>
-                                    ))}
-                                </select>
-
-                                <FormInput
-                                    id="marks"
-                                    label="Mark Value (e.g., 85/100 or A+)"
-                                    type="text"
-                                    value={markForm.marks}
-                                    onChange={(e) => setMarkForm({ ...markForm, marks: e.target.value })}
-                                    required
-                                    disabled={isLoading}
-                                />
-
-                                <Button type="submit" disabled={isLoading}>
-                                    {isLoading ? 'Uploading...' : 'Upload Mark'}
-                                </Button>
-                            </form>
-                        )}
-                    </div>
-
-                    <div className="lg:col-span-2 p-4">
-                        <h4 className="text-xl font-semibold mb-4 text-gray-800">My Uploaded Marks</h4>
-                        {isLoading ? <LoadingSpinner /> : (
-                            <div className="overflow-x-auto shadow-md rounded-lg border">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-100">
-                                        <tr>
-                                            {['Student', 'Class', 'Subject', 'Marks', 'Date', 'Action'].map(header => (
-                                                <th key={header} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{header}</th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {/* FIX: Remove incorrect frontend filter. Backend already filters. */}
-                                        {marks.map(m => (
-                                            <tr key={m._id} className="hover:bg-gray-50 transition duration-150">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{m.studentName}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{getClassName(m.classId)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{m.subject}</td>
-                                                
-                                                {/* --- EDITABLE MARKS CELL --- */}
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold">
-                                                  {editingMarkId === m._id ? (
-                                                    <input 
-                                                      type="text" 
-                                                      value={editMarkValue} 
-                                                      onChange={(e) => setEditMarkValue(e.target.value)}
-                                                      className="w-20 p-1 border rounded shadow-sm"
-                                                    />
-                                                  ) : (
-                                                    m.marks
-                                                  )}
-                                                </td>
-                                                
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(m.createdAt).toLocaleDateString()}</td>
-                                                
-                                                {/* --- EDITABLE ACTIONS CELL --- */}
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                  {editingMarkId === m._id ? (
-                                                    <>
-                                                      <button onClick={() => handleSaveMark(m._id)} className="text-green-600 hover:text-green-900 mr-3">Save</button>
-                                                      <button onClick={handleCancelClick} className="text-gray-600 hover:text-gray-900">Cancel</button>
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <button onClick={() => handleEditClick(m)} className="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
-                                                      <button onClick={() => handleDeleteMark(m._id)} className="text-red-600 hover:text-red-900">Delete</button>
-                                                    </>
-                                                  )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
         };
 
         const TeacherMaterialsTab = () => {
@@ -1471,14 +1199,13 @@ const AdminManagementTab = ({ navigateTo }) => {
                 e.preventDefault();
                 setMessage(null);
                 
-                // --- FIX: RE-ADD classId to validation ---
+                // --- FIX: Updated validation (fileUrl is optional) ---
                 if (!materialForm.title || !materialForm.classId || !materialForm.subject) {
                     setMessage({ type: 'error', text: 'Title, Class, and Subject are required.' });
                     return;
                 }
 
                 try {
-                    // --- FIX: Send full form data ---
                     await addMaterial(materialForm);
                     
                     setMessage({ type: 'success', text: 'Material uploaded successfully.' });
@@ -1604,8 +1331,7 @@ const AdminManagementTab = ({ navigateTo }) => {
     // --- Student Components ---
 
     const UserDashboard = () => {
-        const { currentUser, isLoading, fetchMarks, fetchMaterials, fetchClasses } = useAuth();
-        const [marks, setMarks] = useState([]);
+        const { currentUser, isLoading, fetchMaterials, fetchClasses } = useAuth();
         const [materials, setMaterials] = useState([]);
         const [classes, setClasses] = useState([]);
         const [dashError, setDashError] = useState(null);
@@ -1613,12 +1339,11 @@ const AdminManagementTab = ({ navigateTo }) => {
         const fetchData = async () => {
             try {
                 setDashError(null);
-                const [marksData, materialsData, classesData] = await Promise.all([
-                    fetchMarks(), 
+                // --- REMOVED fetchMarks() ---
+                const [materialsData, classesData] = await Promise.all([
                     fetchMaterials(),
                     fetchClasses()
                 ]);
-                setMarks(marksData);
                 setMaterials(materialsData);
                 setClasses(classesData);
             } catch (err) {
@@ -1631,33 +1356,6 @@ const AdminManagementTab = ({ navigateTo }) => {
         }, [currentUser]);
 
         const getClassName = (id) => classes.find(c => c._id === id)?.name || id;
-
-        const renderMarks = () => (
-            <div className="p-6 bg-white rounded-xl shadow-lg">
-                <h4 className="text-xl font-bold mb-4 text-indigo-700">My Marks</h4>
-                <div className="overflow-x-auto shadow-md rounded-lg border">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-indigo-50">
-                            <tr>
-                                {['Subject', 'Marks', 'Uploaded Date'].map(header => (
-                                    <th key={header} className="px-6 py-3 text-left text-xs font-medium text-indigo-700 uppercase tracking-wider">{header}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {marks.map(m => (
-                                <tr key={m._id} className="hover:bg-gray-50 transition duration-150">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{m.subject}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">{m.marks}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">{new Date(m.createdAt).toLocaleDateString()}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                {marks.length === 0 && <p className="text-gray-500 mt-4">No marks have been uploaded yet.</p>}
-            </div>
-        );
 
         const renderMaterials = () => (
             <div className="p-6 bg-white rounded-xl shadow-lg">
@@ -1690,8 +1388,10 @@ const AdminManagementTab = ({ navigateTo }) => {
                 {dashError && <MessageBox message={dashError} type="error" onClose={() => setDashError(null)} />}
                 {isLoading ? <LoadingSpinner /> : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {renderMarks()}
-                        {renderMaterials()}
+                        {/* Marks component removed */}
+                        <div className="lg:col-span-2">
+                           {renderMaterials()}
+                        </div>
                     </div>
                 )}
             </div>
@@ -1704,7 +1404,7 @@ const HomePage = ({ navigateTo }) => {
   const { 
     currentUser, 
     fetchUsers, fetchClasses, fetchSubjects,
-    fetchMarks, fetchMaterials 
+    fetchMaterials 
   } = useAuth();
   
   const [stats, setStats] = useState(null);
@@ -1724,29 +1424,22 @@ const HomePage = ({ navigateTo }) => {
             val3: subjectsData.length, label3: 'Total Subjects', icon3: <SubjectIcon />,
           });
         } else if (currentUser.role === 'teacher') {
-          const [marksData, materialsData, classesData] = await Promise.all([
-            fetchMarks(), fetchMaterials(), fetchClasses()
+          const [materialsData, classesData] = await Promise.all([
+             fetchMaterials(), fetchClasses()
           ]);
-          const assignedClassNames = currentUser.classIds
-            .map(id => classesData.find(c => c._id === id)?.name)
-            .filter(Boolean)
-            .join(', ');
           
           setStats({
             val1: currentUser.classIds.length, label1: `Your Classes`, icon1: <ClassIcon />,
-            // --- FIX 1: Remove redundant frontend filter. Backend already filters. ---
-            val2: marksData.length, label2: 'Marks Uploaded', icon2: <MarkIcon />,
-            val3: materialsData.length, label3: 'Materials Posted', icon3: <MaterialIcon />,
+            val2: materialsData.length, label2: 'Materials Posted', icon2: <MaterialIcon />,
           });
         } else { // Student
-          const [marksData, materialsData, classesData] = await Promise.all([
-            fetchMarks(), fetchMaterials(), fetchClasses()
+          const [materialsData, classesData] = await Promise.all([
+             fetchMaterials(), fetchClasses()
           ]);
           const myClass = classesData.find(c => c._id === currentUser.classId)?.name;
           setStats({
             val1: myClass || 'No Class', label1: 'Your Class', icon1: <ClassIcon />,
-            val2: marksData.length, label2: 'Your Marks', icon2: <MarkIcon />, // fetchMarks is already filtered by student ID
-            val3: materialsData.length, label3: 'Your Materials', icon3: <MaterialIcon />, // fetchMaterials is also filtered
+            val2: materialsData.length, label2: 'Your Materials', icon2: <MaterialIcon />,
           });
         }
       } catch (e) {
@@ -1774,10 +1467,10 @@ const HomePage = ({ navigateTo }) => {
         <LoadingSpinner />
       ) : (
         stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <StatCard title={stats.label1} value={stats.val1} icon={stats.icon1} />
-            <StatCard title={stats.label2} value={stats.val2} icon={stats.icon2} />
-            <StatCard title={stats.label3} value={stats.val3} icon={stats.icon3} />
+          <div className={`grid grid-cols-1 ${currentUser.role === 'admin' ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-6 mb-8`}>
+            {stats.val1 !== undefined && <StatCard title={stats.label1} value={stats.val1} icon={stats.icon1} />}
+            {stats.val2 !== undefined && <StatCard title={stats.label2} value={stats.val2} icon={stats.icon2} />}
+            {stats.val3 !== undefined && <StatCard title={stats.label3} value={stats.val3} icon={stats.icon3} />}
           </div>
         )
       )}
@@ -1803,7 +1496,7 @@ const HomePage = ({ navigateTo }) => {
             disabled={currentUser.role !== 'teacher'}
           >
             <h4 className="font-semibold text-lg text-blue-700">Teacher Management</h4>
-            <p className="text-sm text-blue-600">Upload Marks and Study Materials for assigned classes.</p>
+            <p className="text-sm text-blue-600">Upload Study Materials for assigned classes.</p>
           </button>
           <button 
             onClick={() => navigateTo('userDashboard')} 
@@ -1811,7 +1504,7 @@ const HomePage = ({ navigateTo }) => {
             disabled={currentUser.role !== 'user'}
           >
             <h4 className="font-semibold text-lg text-green-700">Student View</h4>
-            <p className="text-sm text-green-600">View assigned tasks, marks, and class materials.</p>
+            <p className="text-sm text-green-600">View assigned marks and class materials.</p>
           </button>
         </div>
       </div>
@@ -1904,4 +1597,3 @@ const HomePage = ({ navigateTo }) => {
     );
 
     export default App;
-

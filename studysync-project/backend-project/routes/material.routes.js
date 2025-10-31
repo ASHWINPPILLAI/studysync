@@ -35,7 +35,7 @@ router.post('/', [auth, teacherAuth], async (req, res) => {
 
     // Validation: Title, Subject, and Class are required. FileUrl is optional.
     if (!title || !subject || !classId) {
-      return res.status(400).json({ msg: 'Title, Subject, and Class are required.' });
+      return res.status(4DE).json({ msg: 'Title, Subject, and Class are required.' });
     }
     
     const newMaterial = new Material({

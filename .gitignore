@@ -1,0 +1,12 @@
+# Dependencies
+/node_modules
+/studysync-project/node_modules
+/studysync-backend/node_modules
+
+# Environment files
+.env
+/studysync-project/.env
+/studysync-backend/.env
+
+# Vite build output
+/studysync-project/dist
